@@ -1,0 +1,10 @@
+call("trainableSegmentation.Weka_Segmentation.loadClassifier", "C:\\Users\\willi\\OneDrive\\Desktop\\Université\\Lab\\Microscopie\\18-07-2025_GM130,W632APC_293MIA3KO\\Golgi.model");
+call("trainableSegmentation.Weka_Segmentation.getResult");
+selectImage("Classified image");
+run("8-bit");
+setAutoThreshold("Intermodes dark");
+//run("Threshold...");
+//setThreshold(155, 255);
+setOption("BlackBackground", false);
+run("Convert to Mask");
+run("Analyze Particles...", "size=3-Infinity circularity=0.00-95.00 show=Outlines display include summarize overlay");
