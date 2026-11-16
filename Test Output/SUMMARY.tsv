@@ -1,0 +1,11 @@
+# Golgi Segmenter v1.0.3
+# ImageJ 2.16.0/1.54p
+# Java 1.8.0_322
+# Model: C:\Users\willi\OneDrive\Documents\GitHub\Confocal-microscopy-Weka-ROI-identification-and-Signal-measurement\golgi.model
+# Target bit depth: 16
+# Threshold: Intermodes dark
+# Size: 3-Infinity  Circularity: 0-0.95
+File	BitDepth_in	ParticleCount	TotalArea_px2	MeanArea_px2
+Snap-208.czi - C=1	8	2	12.9467	6.4733
+Snap-214.czi - C=1	8	5	34.0537	6.8107
+Snap-215.czi - C=1	8	14	85.252	6.0894
