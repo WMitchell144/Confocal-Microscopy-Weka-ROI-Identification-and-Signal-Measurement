@@ -1,10 +1,6 @@
 /*
  * ============================================================================
- *  Random non-overlapping control ROIs (Batch version)
- * ----------------------------------------------------------------------------
- *  Places `roi` non-overlapping squares covering `randomroifraction`% of the
- *  image, saves an image with the squares drawn on it (.png), and saves the
- *  coordinates as a .csv. Loops through an entire folder of images.
+ *  Random non-overlapping control ROIs (Batch version with Signal Measurement)
  * ============================================================================
  */
 
@@ -33,20 +29,20 @@ for (i = 0; i < list.length; i++) {
 
     open(inputDir + f);
     base = File.getNameWithoutExtension(f);
+    origID = getImageID(); 
     
-    // FIXED: use random("seed", SEED) instead of setRandomSeed()
     random("seed", SEED);
     roiManager("reset");
+    run("Clear Results");
 
     imagewidth  = getWidth();
     imageheight = getHeight();
     imagearea   = imagewidth * imageheight;
 
-    // Side length of each square
     totalTarget = imagearea * randomroifraction / 100.0;
     side        = sqrt(totalTarget / roi);
 
-    // Scratch canvas: duplicate, 8-bit, RGB to paint red squares
+    // Scratch canvas to paint red squares
     run("Duplicate...", "title=control_roi");
     run("8-bit");
     run("RGB Color");
@@ -57,6 +53,7 @@ for (i = 0; i < list.length; i++) {
     placed = 0;
     totalAttempts = 0;
 
+    // --- STEP 1: GENERATE ROIs ---
     for (z = 0; z < roi; z++) {
         ok = false;
         for (t = 0; t < trials_per_roi; t++) {
@@ -64,7 +61,6 @@ for (i = 0; i < list.length; i++) {
             x = floor(random() * (imagewidth  - side));
             y = floor(random() * (imageheight - side));
 
-            // Reject if the candidate square overlaps an already-painted ROI
             makeRectangle(x, y, side, side);
             flag = -1;
             for (xs = x; xs < x + side; xs++)
@@ -83,30 +79,54 @@ for (i = 0; i < list.length; i++) {
         if (!ok) {
             beep();
             close("*");
-            exit("Failed to place ROI " + (z+1) + "/" + roi +
-                 " after " + trials_per_roi + " attempts on " + f + 
-                 ". Placed: " + placed + ". Lower roi or randomroifraction.");
+            exit("Failed to place ROI " + (z+1) + "/" + roi + " on " + f);
         }
         showProgress((z+1) / roi);
     }
-
     run("Select None");
 
-    // --- EXPORT IMAGE ---
+    // --- STEP 2: EXPORT VISUAL PNG ---
     selectImage("control_roi");
     saveAs("PNG", outputDir + base + "_controlROIs.png");
 
-    // --- EXPORT CSV ---
-    audit = "index\tx\ty\tside\n";
-    for (z = 0; z < roi; z++)
-        audit += (z+1) + "\t" + xa[z] + "\t" + ya[z] + "\t" + side + "\n";
-        
-    f_out = File.open(outputDir + base + "_controlROIs.csv");
-    print(f_out, audit);
-    File.close(f_out);
-
-    print("  Saved PNG and CSV. Seed used: " + SEED);
+    // --- STEP 3: MEASURE SIGNAL ON ORIGINAL IMAGE ---
+    selectImage(origID);
+    run("Set Measurements...", "mean decimal=3");
+    run("Clear Results");
     
+    roiManager("reset");
+    for (z = 0; z < roi; z++) {
+        makeRectangle(xa[z], ya[z], side, side);
+        roiManager("Add");
+    }
+    
+    // Measure all 240 ROIs on the original 16-bit image
+    roiManager("Measure");
+
+    // --- STEP 4: EXPORT SAFE CSV ---
+    Table.create("ROI_Data");
+    
+    Table.setColumn("Index", newArray(roi));
+    Table.setColumn("X", newArray(roi));
+    Table.setColumn("Y", newArray(roi));
+    Table.setColumn("Side", newArray(roi));
+    Table.setColumn("Mean_Signal", newArray(roi));
+
+    for (z = 0; z < roi; z++) {
+        m_mean = getResult("Mean", z);
+        
+        Table.set("Index", z, z+1);
+        Table.set("X", z, xa[z]);
+        Table.set("Y", z, ya[z]);
+        Table.set("Side", z, side);
+        Table.set("Mean_Signal", z, m_mean);
+    }
+
+    // Save the robust table as the final CSV
+    selectWindow("ROI_Data");
+    saveAs("Results", outputDir + base + "_controlROIs_Signal.csv");
+
+    print("  Saved PNG and Signal CSV. Seed used: " + SEED);
     close("*");
 }
 
