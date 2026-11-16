@@ -1,6 +1,6 @@
 /*
  * ============================================================================
- *  Golgi Segmenter - Complete Pipeline (Manual Workflow Replicated)
+ *  WEKA based image segmentation and per ROI signal quantification
  * ============================================================================
  */
 
